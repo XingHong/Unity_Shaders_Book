@@ -5,10 +5,9 @@
 		_FogColor ("Fog Color", Color) = (1, 1, 1, 1)
 		_FogStart ("Fog Start", Float) = 0.0
 		_FogEnd ("Fog End", Float) = 1.0
+		_NoiseTex("Noise Texture", 2D) = "white" {}
 		_FogSpeed ("Fog Speed", Float) = 0.1	
-
-		_Persistance("Perlin Persistance", Range(0, 1)) = 0.4
-		_Roughness("Perlin Roughness", Range(1, 8)) = 3
+		_NoiseAmount("Noise Amount", Float) = 25
 
 		//遮罩测试
 		_MaskCenter("遮罩中心", Vector) = (0,0,0,0)
@@ -19,11 +18,7 @@
 	SubShader {
 		CGINCLUDE
 
-		//#pragma target 3.0 
-		#include "Random.cginc"
-		#include "UnityCG.cginc"
-
-	    #define OCTAVES 4 
+		#include "UnityCG.cginc"	    
 		
 		float4x4 _FrustumCornersRay;
 		
@@ -34,6 +29,8 @@
 		fixed4 _FogColor;
 		float _FogStart;
 		float _FogEnd;
+		sampler2D _NoiseTex;
+		half _NoiseAmount;
 		half _FogSpeed;
 		float _Roughness, _Persistance;
 
@@ -44,7 +41,6 @@
 			float4 pos : SV_POSITION;
 			float2 uv : TEXCOORD0;
 			float2 uv_depth : TEXCOORD1;
-			//float4 screenPos : TEXCOORD2;
 			float4 interpolatedRay : TEXCOORD2;
 		};
 		
@@ -78,65 +74,8 @@
 			o.interpolatedRay = _FrustumCornersRay[index];
 				 	 
 			return o;
-		}
-
-		float easeIn(float interpolator) {
-			return interpolator * interpolator;
-		}
-
-		float easeOut(float interpolator) {
-			return 1 - easeIn(1 - interpolator);
-		}
-
-		float easeInOut(float interpolator) {
-			float easeInValue = easeIn(interpolator);
-			float easeOutValue = easeOut(interpolator);
-			return lerp(easeInValue, easeOutValue, interpolator);
-		}
-
-		float perlinNoise(float3 value) {
-			float3 fraction = frac(value);
-
-			float interpolatorX = easeInOut(fraction.x);
-			float interpolatorY = easeInOut(fraction.y);
-			float interpolatorZ = easeInOut(fraction.z);
-
-			float cellNoiseZ[2];
-			[unroll]
-			for (int z = 0; z <= 1; z++) {
-				float cellNoiseY[2];
-				[unroll]
-				for (int y = 0; y <= 1; y++) {
-					float cellNoiseX[2];
-					[unroll]
-					for (int x = 0; x <= 1; x++) {
-						float3 cell = floor(value) + float3(x, y, z);
-						float3 cellDirection = rand3dTo3d(cell) * 2 - 1;
-						float3 compareVector = fraction - float3(x, y, z);
-						cellNoiseX[x] = dot(cellDirection, compareVector);
-					}
-					cellNoiseY[y] = lerp(cellNoiseX[0], cellNoiseX[1], interpolatorX);
-				}
-				cellNoiseZ[z] = lerp(cellNoiseY[0], cellNoiseY[1], interpolatorY);
-			}
-			float noise = lerp(cellNoiseZ[0], cellNoiseZ[1], interpolatorZ);
-			return noise;
-		}
-
-		float sampleLayeredNoise(float3 value, float persistance, float roughness) {
-			float noise = 0;
-			float frequency = 1;
-			float factor = 1;
-
-			[unroll]
-			for (int i = 0; i < OCTAVES; i++) {
-				noise = noise + perlinNoise(value * frequency + i * 0.72354) * factor;
-				factor *= persistance;
-				frequency *= roughness;
-			}
-
-			return noise;
-		}
+		}	
+	
 
 		// 在雾效计算前添加遮罩计算
 		float CalculateFogMask(float3 worldPos)
@@ -152,11 +91,11 @@
 			float3 worldPos = _WorldSpaceCameraPos + linearDepth * i.interpolatedRay.xyz;
 
 			float speed = _Time.y * _FogSpeed;
-			float noise = sampleLayeredNoise(worldPos + speed, _Persistance, _Roughness);
+			float noise = (tex2D(_NoiseTex, worldPos.xz / _NoiseAmount + speed).r - 0.5);		//根据位置采样噪声图
 					
 			float fogDensity = (_FogEnd - worldPos.y) / (_FogEnd - _FogStart);
-			//fogDensity = saturate(fogDensity * _FogDensity * (1 + noise));
-			fogDensity = saturate(fogDensity * _FogDensity);
+			fogDensity = saturate(fogDensity * _FogDensity * (1 + noise));
+			
 			
 			float fogMask = CalculateFogMask(worldPos);
 			fogDensity *= fogMask;

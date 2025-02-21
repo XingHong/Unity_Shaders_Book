@@ -41,16 +41,14 @@ public class DynamicFogWithMask : PostEffectsBase {
 	public Color fogColor = Color.white;
 
 	public float fogStart = 0.0f;
-	public float fogEnd = 2.0f;	
+	public float fogEnd = 2.0f;
+
+	public Texture noiseTexture;
+
+	public float noiseAmount = 25f;
 
 	[Range(-0.5f, 0.5f)]
 	public float fogSpeed = 0.1f;
-
-	[Range(0, 1.0f)]
-	public float persistance = 0.4f;
-
-	[Range(1f, 8f)]
-	public float roughness = 3.0f;
 
 	[Header("遮罩设置")]
 	public Vector3 maskCenter = Vector3.one;    // 遮罩中心参考对象
@@ -118,9 +116,10 @@ public class DynamicFogWithMask : PostEffectsBase {
 			material.SetFloat("_FogStart", fogStart);
 			material.SetFloat("_FogEnd", fogEnd);
 
+			material.SetTexture("_NoiseTex", noiseTexture);
+			material.SetFloat("_NoiseAmount", noiseAmount);
+			
 			material.SetFloat("_FogSpeed", fogSpeed);
-			material.SetFloat("_Persistance", persistance);
-			material.SetFloat("_Roughness", roughness);
 
 			material.SetVector("_MaskCenter", maskCenter);
 			material.SetFloat("_MaskRadius", radius);
