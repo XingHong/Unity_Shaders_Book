@@ -5,13 +5,17 @@
 		_FogColor ("Fog Color", Color) = (1, 1, 1, 1)
 		_FogStart ("Fog Start", Float) = 0.0
 		_FogEnd ("Fog End", Float) = 1.0
-		_NoiseTex ("Noise Texture", 2D) = "white" {}
 		_FogSpeed ("Fog Speed", Float) = 0.1	
-		_NoiseAmount("Noise Amount", Float) = 1
 
 		_Persistance("Perlin Persistance", Range(0, 1)) = 0.4
 		_Roughness("Perlin Roughness", Range(1, 8)) = 3
+
+		//遮罩测试
+		_MaskCenter("遮罩中心", Vector) = (0,0,0,0)
+		_MaskRadius("遮罩半径", Float) = 5
+		_Feather("羽化范围", Range(0,5)) = 1
 	}
+
 	SubShader {
 		CGINCLUDE
 
@@ -30,15 +34,17 @@
 		fixed4 _FogColor;
 		float _FogStart;
 		float _FogEnd;
-		sampler2D _NoiseTex;
-		half _NoiseAmount;
 		half _FogSpeed;
 		float _Roughness, _Persistance;
+
+		float3 _MaskCenter;
+		float _MaskRadius, _Feather;
 		
 		struct v2f {
 			float4 pos : SV_POSITION;
 			float2 uv : TEXCOORD0;
 			float2 uv_depth : TEXCOORD1;
+			//float4 screenPos : TEXCOORD2;
 			float4 interpolatedRay : TEXCOORD2;
 		};
 		
@@ -131,6 +137,14 @@
 
 			return noise;
 		}
+
+		// 在雾效计算前添加遮罩计算
+		float CalculateFogMask(float3 worldPos)
+		{
+			float distanceToCenter = distance(worldPos, _MaskCenter);
+			float mask = smoothstep(_MaskRadius, _MaskRadius + _Feather, distanceToCenter);
+			return mask;
+		}
 		
 		fixed4 frag(v2f i) : SV_Target {
 
@@ -138,13 +152,14 @@
 			float3 worldPos = _WorldSpaceCameraPos + linearDepth * i.interpolatedRay.xyz;
 
 			float speed = _Time.y * _FogSpeed;
-			//两种生成方式，一种根据噪声图，一种根据位置生成噪声图
-			//float noise = sampleLayeredNoise(worldPos + speed, _Persistance, _Roughness);		//位置生产噪声图
-			float noise = (tex2D(_NoiseTex, worldPos.xz / 25 + speed).r - 0.5) * _NoiseAmount;		//根据位置采样噪声图
+			float noise = sampleLayeredNoise(worldPos + speed, _Persistance, _Roughness);
 					
 			float fogDensity = (_FogEnd - worldPos.y) / (_FogEnd - _FogStart);
-			fogDensity = saturate(fogDensity * _FogDensity * (1 + noise));
+			//fogDensity = saturate(fogDensity * _FogDensity * (1 + noise));
+			fogDensity = saturate(fogDensity * _FogDensity);
 			
+			float fogMask = CalculateFogMask(worldPos);
+			fogDensity *= fogMask;
 			fixed4 finalColor = tex2D(_MainTex, i.uv);
 			finalColor.rgb = lerp(finalColor.rgb, _FogColor.rgb, fogDensity);
 			
