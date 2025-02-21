@@ -92,10 +92,10 @@ public class FogWithNoise : PostEffectsBase {
 			frustumCorners.SetRow(1, bottomRight);
 			frustumCorners.SetRow(2, topRight);
 			frustumCorners.SetRow(3, topLeft);
-			
-			//material.SetMatrix("_FrustumCornersRay", frustumCorners);
 
-			material.SetFloat("_FogDensity", fogDensity);
+            material.SetMatrix("_FrustumCornersRay", frustumCorners);
+
+            material.SetFloat("_FogDensity", fogDensity);
 			material.SetColor("_FogColor", fogColor);
 			material.SetFloat("_FogStart", fogStart);
 			material.SetFloat("_FogEnd", fogEnd);
