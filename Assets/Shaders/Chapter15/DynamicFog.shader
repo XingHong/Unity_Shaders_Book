@@ -37,7 +37,8 @@
 			float4 pos : SV_POSITION;
 			float2 uv : TEXCOORD0;
 			float2 uv_depth : TEXCOORD1;
-			float4 screenPos : TEXCOORD2;
+			//float4 screenPos : TEXCOORD2;
+			float4 interpolatedRay : TEXCOORD2;
 		};
 		
 		v2f vert(appdata_img v) {
@@ -67,7 +68,7 @@
 				index = 3 - index;
 			#endif
 			
-			o.screenPos = ComputeScreenPos(o.pos);
+			o.interpolatedRay = _FrustumCornersRay[index];
 				 	 
 			return o;
 		}
@@ -132,31 +133,11 @@
 		
 		fixed4 frag(v2f i) : SV_Target {
 
-			// 获取标准化屏幕坐标
-			float2 uv = i.screenPos.xy / i.screenPos.w;
+			float linearDepth = LinearEyeDepth(SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, i.uv_depth));
+			float3 worldPos = _WorldSpaceCameraPos + linearDepth * i.interpolatedRay.xyz;
 
-			// 采样深度纹理
-			float depth = SAMPLE_DEPTH_TEXTURE(_CameraDepthTexture, uv);
-
-			// 转换为线性深度（Eye空间）
-			float linearDepth = LinearEyeDepth(depth);
-
-			// 重建视图空间坐标
-			float4 viewPos = float4(
-				(uv.x * 2 - 1) * linearDepth,
-				(uv.y * 2 - 1) * linearDepth,
-				linearDepth,
-				1.0);
-
-			// 转换为世界空间坐标
-			float4 worldPos = mul(unity_CameraToWorld, viewPos);
-
-			// 最终世界坐标
-			float3 finalWorldPos = worldPos.xyz / worldPos.w;
-
-			
 			float speed = _Time.y * _FogSpeed;
-			float noise = sampleLayeredNoise(finalWorldPos + speed, _Persistance, _Roughness);
+			float noise = sampleLayeredNoise(worldPos + speed, _Persistance, _Roughness);
 					
 			float fogDensity = (_FogEnd - worldPos.y) / (_FogEnd - _FogStart);
 			fogDensity = saturate(fogDensity * _FogDensity * (1 + noise));
@@ -166,8 +147,6 @@
 			
 			return finalColor;
 		}
-
-
 		
 		ENDCG
 		
