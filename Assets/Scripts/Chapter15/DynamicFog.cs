@@ -1,7 +1,8 @@
-﻿using UnityEngine;
+﻿//动态雾，不会以视图uv为基准
+using UnityEngine;
 using System.Collections;
 
-public class FogWithNoise : PostEffectsBase {
+public class DynamicFog : PostEffectsBase {
 
 	public Shader fogShader;
 	private Material fogMaterial = null;
