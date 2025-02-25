@@ -1,4 +1,4 @@
-﻿Shader "Custom/DynamicFog" {
+﻿Shader "Custom/DynamicFogWithMask" {
 	Properties {
 		_MainTex ("Base (RGB)", 2D) = "white" {}
 		_FogDensity ("Fog Density", Float) = 1.0
@@ -94,11 +94,12 @@
 			float noise = (tex2D(_NoiseTex, worldPos.xz / _NoiseAmount + speed).r - 0.5);		//根据位置采样噪声图
 					
 			float fogDensity = (_FogEnd - worldPos.y) / (_FogEnd - _FogStart);
-			fogDensity = saturate(fogDensity * _FogDensity * (1 + noise));
+			fogDensity = saturate(fogDensity * _FogDensity);
+			//fogDensity = saturate(fogDensity * _FogDensity * (1 + noise));
 			
 			
-			float fogMask = CalculateFogMask(worldPos);
-			fogDensity *= fogMask;
+			/*float fogMask = CalculateFogMask(worldPos);
+			fogDensity *= fogMask;*/
 			fixed4 finalColor = tex2D(_MainTex, i.uv);
 			finalColor.rgb = lerp(finalColor.rgb, _FogColor.rgb, fogDensity);
 			
