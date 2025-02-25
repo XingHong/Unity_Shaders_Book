@@ -47,12 +47,6 @@ public class FogWithNoise : PostEffectsBase {
 	[Range(-0.5f, 0.5f)]
 	public float fogSpeed = 0.1f;
 
-	[Range(0, 1.0f)]
-	public float persistance = 0.4f;
-
-	[Range(1f, 8f)]
-	public float roughness = 3.0f;
-
 
 	void OnEnable() {
 		GetComponent<Camera>().depthTextureMode |= DepthTextureMode.Depth;
@@ -102,8 +96,6 @@ public class FogWithNoise : PostEffectsBase {
 
 			material.SetTexture("_NoiseTex", noiseTexture);
 			material.SetFloat("_FogSpeed", fogSpeed);
-			material.SetFloat("_Persistance", persistance);
-			material.SetFloat("_Roughness", roughness);
 
 			Graphics.Blit (src, dest, material);
 		} else {
