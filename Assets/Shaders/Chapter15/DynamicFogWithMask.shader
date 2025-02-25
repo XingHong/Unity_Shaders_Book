@@ -95,11 +95,11 @@
 					
 			float fogDensity = (_FogEnd - worldPos.y) / (_FogEnd - _FogStart);
 			fogDensity = saturate(fogDensity * _FogDensity);
-			//fogDensity = saturate(fogDensity * _FogDensity * (1 + noise));
+			fogDensity = saturate(fogDensity * _FogDensity * (1 + noise));
 			
 			
-			/*float fogMask = CalculateFogMask(worldPos);
-			fogDensity *= fogMask;*/
+			float fogMask = CalculateFogMask(worldPos);
+			fogDensity *= fogMask;
 			fixed4 finalColor = tex2D(_MainTex, i.uv);
 			finalColor.rgb = lerp(finalColor.rgb, _FogColor.rgb, fogDensity);
 			
