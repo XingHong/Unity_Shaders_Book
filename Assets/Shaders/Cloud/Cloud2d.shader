@@ -1,12 +1,14 @@
-Shader "Custom/Cloud" {
+Shader "Custom/Cloud/Cloud2d" {
         Properties{
 
             _MainTex("Texture", 2D) = "white" {}
             _MaskTex("MaskTexture", 2D) = "white" {}
+            _NoiseTex("NoiseTex", 2D) = "white" {}
             _MinMaxPowValue("边缘渐变范围(x,y),精度系数(z)", vector) = (1,1,1,1)
             _NoiseOffsetMultValue("扰动边缘偏移(x,y),扰动幅度(z)", vector) = (0,0,1,1)
             _CloudSpeed("uv走向,xy是第一个，zw是第二个", Vector) = (1,1,1,1)
             _TillingFactor("TillingFactor", float) = 0.5
+            _CloudColor("Cloud Color", Color) = (0,1,0,1)
         }
 
         SubShader{
@@ -47,10 +49,12 @@ Shader "Custom/Cloud" {
                 sampler2D _MainTex;
                 float4 _MainTex_ST;
                 sampler2D _MaskTex;
+                sampler2D _NoiseTex;
                 float4 _MinMaxPowValue;
                 float4 _NoiseOffsetMultValue;
                 float4 _CloudSpeed;
                 float _TillingFactor;
+                float4 _CloudColor;
 
                 v2f vert(appdata v)
                 {
@@ -81,13 +85,22 @@ Shader "Custom/Cloud" {
                 fixed4 frag(v2f i) : SV_Target
                 {
                     float4 col = blendTwoCloud(i.uv);
-                    float4 mask = tex2D(_MaskTex, i.uv);
-                    float r = mask.r;
+                    float4 mask = tex2D(_MaskTex, i.uv); //方案1
+                    //方案2
+                   /* float gray = (col.r + col.g + col.b) / 3;
+                    float2 disOffset = float2(gray - _NoiseOffsetMultValue.x, gray - _NoiseOffsetMultValue.y) * _NoiseOffsetMultValue.z * 0.01;
+
+                    float4 mask = tex2D(_MaskTex, i.uv + disOffset);*/
+                    float r = 1 - mask.r;
+                    //float r = 1 - mask.r;
                     ////裁剪边缘精度、边缘渐变幅度控制
-                    r = clampAndPowValue(r, _MinMaxPowValue.xyz);                    
+                    //r = clampAndPowValue(r, _MinMaxPowValue.xyz);                    
+                    r = smoothstep(0.1, 0.9, r);
 
                     float a = col.a * r;
-                    col = fixed4(col.rgb, a);
+                    //a = smoothstep(0.3, 0.7, a);
+                    float3 finalColor = col.rgb * _CloudColor.rgb;
+                    col = float4(finalColor, a);
                     return col;
                 }
                 ENDCG
