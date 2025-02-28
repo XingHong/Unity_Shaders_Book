@@ -95,7 +95,7 @@ Shader "Custom/Cloud/Cloud2d" {
                     //float r = 1 - mask.r;
                     ////裁剪边缘精度、边缘渐变幅度控制
                     //r = clampAndPowValue(r, _MinMaxPowValue.xyz);                    
-                    r = smoothstep(0.1, 0.9, r);
+                    r = smoothstep(0.2, 0.8, r);
 
                     float a = col.a * r;
                     //a = smoothstep(0.3, 0.7, a);

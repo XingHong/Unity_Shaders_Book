@@ -34,6 +34,8 @@ public class GenerateMask : MonoBehaviour
 
     public RenderTexture showexture2D;
 
+    public Texture2D test2d;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -78,7 +80,8 @@ public class GenerateMask : MonoBehaviour
                 Debug.Log("点击到物体:" + hit.collider.gameObject + ",uv:" + uv + ", 位置:" + localPos + $",(x,y):({x},{y})");
                 maskTexture2D.SetPixels32(x * blockSize, y * blockSize, blockSize, blockSize, blockColors);
                 maskTexture2D.Apply();
-                maskTexture2D = ProcessBlur(maskTexture2D);
+                //maskTexture2D = ProcessBlur(maskTexture2D);
+                test2d = SSEDTGenerator.Generate(maskTexture2D);
             }
         }
     }
