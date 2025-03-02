@@ -81,7 +81,9 @@ public class GenerateMask : MonoBehaviour
                 maskTexture2D.SetPixels32(x * blockSize, y * blockSize, blockSize, blockSize, blockColors);
                 maskTexture2D.Apply();
                 //maskTexture2D = ProcessBlur(maskTexture2D);
-                test2d = SSEDTGenerator.Generate(maskTexture2D);
+                var targetTex = new Texture2D(maskWidth * blockSize, maskHeight * blockSize, TextureFormat.ARGB32, false);
+                SSEDTGenerator.GenerateSDF(maskTexture2D, targetTex);
+                test2d = targetTex;
             }
         }
     }

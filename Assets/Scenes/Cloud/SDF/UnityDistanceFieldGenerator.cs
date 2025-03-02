@@ -2,124 +2,155 @@ using UnityEngine;
 
 public class SSEDTGenerator
 {
-    private struct Point
+    private class Pixel
     {
-        public int dx, dy;
-        public int DistSq => dx * dx + dy * dy;
+        public float distance;
+        public bool isIn;
 
-        public Point(int x, int y)
+
+        public Pixel()
         {
-            dx = x;
-            dy = y;
+            distance = 0;
+            isIn = false;
         }
-
-        public static Point operator +(Point a, Point b) => new Point(a.dx + b.dx, a.dy + b.dy);
     }
 
-    public static Texture2D Generate(Texture2D source, int maxDistance = 64)
+    public static Texture2D GenerateSDF(Texture2D source, Texture2D destination)
     {
-        int width = source.width;
-        int height = source.height;
+        int sourceWidth = source.width;
+        int sourceHeight = source.height;
+        int targetWidth = destination.width;
+        int targetHeight = destination.height;
 
-        // 获取原始像素数据并进行二值化处理
-        Color32[] pixels = source.GetPixels32();
-        bool[,] binary = new bool[width, height];
-        for (int y = 0; y < height; y++)
+        Pixel[,] pixels = new Pixel[sourceWidth, sourceHeight];
+        Pixel[,] targetPixels = new Pixel[targetWidth, targetHeight];
+        Debug.Log("sourceWidth" + sourceWidth);
+        Debug.Log("sourceHeight" + sourceHeight);
+        int x, y;
+        Color targetColor = Color.white;
+        for (y = 0; y < sourceWidth; y++)
         {
-            for (int x = 0; x < width; x++)
+            for (x = 0; x < sourceHeight; x++)
             {
-                Color32 c = pixels[y * width + x];
-                binary[x, y] = (c.r + c.g + c.b) > 384; // 简化亮度计算
+                pixels[x, y] = new Pixel();
+                if (source.GetPixel(x, y) == Color.white)
+                    pixels[x, y].isIn = true;
+                else
+                    pixels[x, y].isIn = false;
             }
         }
 
-        // 初始化网格
-        Point[,] grid = InitializeGrid(width, height, binary, maxDistance);
 
-        // 生成距离场
-        GenerateSEDT(grid, width, height, maxDistance);
+        int gapX = sourceWidth / targetWidth;
+        int gapY = sourceHeight / targetHeight;
+        int MAX_SEARCH_DIST = 16;
+        int minx, maxx, miny, maxy;
+        float max_distance = -MAX_SEARCH_DIST;
+        float min_distance = MAX_SEARCH_DIST;
 
-        // 创建输出纹理
-        return CreateOutputTexture(grid, width, height, maxDistance);
-    }
-
-    private static Point[,] InitializeGrid(int width, int height, bool[,] binary, int maxDistance)
-    {
-        Point[,] grid = new Point[width, height];
-
-        // 初始化：边界点设为(0,0)，内部点设为最大距离
-        for (int y = 0; y < height; y++)
+        for (x = 0; x < targetWidth; x++)
         {
-            for (int x = 0; x < width; x++)
+            for (y = 0; y < targetHeight; y++)
             {
-                grid[x, y] = binary[x, y] ?
-                    new Point(0, 0) :
-                    new Point(maxDistance, maxDistance);
+                targetPixels[x, y] = new Pixel();
+                int sourceX = x * gapX;
+                int sourceY = y * gapY;
+                int min = MAX_SEARCH_DIST;
+                minx = sourceX - MAX_SEARCH_DIST;
+                if (minx < 0)
+                {
+                    minx = 0;
+                }
+                miny = sourceY - MAX_SEARCH_DIST;
+                if (miny < 0)
+                {
+                    miny = 0;
+                }
+                maxx = sourceX + MAX_SEARCH_DIST;
+                if (maxx > (int)sourceWidth)
+                {
+                    maxx = sourceWidth;
+                }
+                maxy = sourceY + MAX_SEARCH_DIST;
+                if (maxy > (int)sourceHeight)
+                {
+                    maxy = sourceHeight;
+                }
+                int dx, dy, iy, ix, distance;
+                bool sourceIsInside = pixels[sourceX, sourceY].isIn;
+                targetPixels[x, y].isIn = sourceIsInside;
+                if (sourceIsInside)
+                {
+                    for (iy = miny; iy < maxy; iy++)
+                    {
+                        dy = iy - sourceY;
+                        dy *= dy;
+                        for (ix = minx; ix < maxx; ix++)
+                        {
+                            bool targetIsInside = pixels[ix, iy].isIn;
+                            if (targetIsInside)
+                            {
+                                continue;
+                            }
+                            dx = ix - sourceX;
+                            distance = (int)Mathf.Sqrt(dx * dx + dy);
+                            if (distance < min)
+                            {
+                                min = distance;
+                            }
+                        }
+                    }
+
+                    if (min > max_distance)
+                    {
+                        max_distance = min;
+                    }
+                    targetPixels[x, y].distance = min;
+                }
+                else
+                {
+                    for (iy = miny; iy < maxy; iy++)
+                    {
+                        dy = iy - sourceY;
+                        dy *= dy;
+                        for (ix = minx; ix < maxx; ix++)
+                        {
+                            bool targetIsInside = pixels[ix, iy].isIn;
+                            if (!targetIsInside)
+                            {
+                                continue;
+                            }
+                            dx = ix - sourceX;
+                            distance = (int)Mathf.Sqrt(dx * dx + dy);
+                            if (distance < min)
+                            {
+                                min = distance;
+                            }
+                        }
+                    }
+
+                    if (-min < min_distance)
+                    {
+                        min_distance = -min;
+                    }
+                    targetPixels[x, y].distance = -min;
+                }
             }
         }
-        return grid;
-    }
 
-    private static void GenerateSEDT(Point[,] grid, int width, int height, int maxDistance)
-    {
-        // 第一遍扫描：左上到右下
-        for (int y = 0; y < height; y++)
+        //EXPORT texture
+        float clampDist = max_distance - min_distance;
+        for (x = 0; x < targetWidth; x++)
         {
-            for (int x = 0; x < width; x++)
+            for (y = 0; y < targetHeight; y++)
             {
-                Compare(ref grid[x, y], GetPoint(grid, x, y, -1, -1, maxDistance) + new Point(1, 1));
-                Compare(ref grid[x, y], GetPoint(grid, x, y, -1, 0, maxDistance) + new Point(1, 0));
-                Compare(ref grid[x, y], GetPoint(grid, x, y, -1, 1, maxDistance) + new Point(1, -1));
-                Compare(ref grid[x, y], GetPoint(grid, x, y, 0, -1, maxDistance) + new Point(0, 1));
+                targetPixels[x, y].distance -= min_distance;
+                float value = targetPixels[x, y].distance / clampDist;
+                destination.SetPixel(x, y, new Color(value, value, value, value));
+
             }
         }
-
-        // 第二遍扫描：右下到左上
-        for (int y = height - 1; y >= 0; y--)
-        {
-            for (int x = width - 1; x >= 0; x--)
-            {
-                Compare(ref grid[x, y], GetPoint(grid, x, y, 1, 0, maxDistance) + new Point(-1, 0));
-                Compare(ref grid[x, y], GetPoint(grid, x, y, 1, 1, maxDistance) + new Point(-1, -1));
-                Compare(ref grid[x, y], GetPoint(grid, x, y, 1, -1, maxDistance) + new Point(-1, 1));
-                Compare(ref grid[x, y], GetPoint(grid, x, y, 0, 1, maxDistance) + new Point(0, -1));
-            }
-        }
-    }
-
-    private static Point GetPoint(Point[,] grid, int x, int y, int dx, int dy, int maxDistance)
-    {
-        int nx = x + dx;
-        int ny = y + dy;
-        if (nx >= 0 && nx < grid.GetLength(0) && ny >= 0 && ny < grid.GetLength(1))
-            return grid[nx, ny];
-        return new Point(maxDistance, maxDistance);
-    }
-
-    private static void Compare(ref Point current, Point candidate)
-    {
-        if (candidate.DistSq < current.DistSq)
-            current = candidate;
-    }
-
-    private static Texture2D CreateOutputTexture(Point[,] grid, int width, int height, int maxDistance)
-    {
-        Texture2D tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
-        float[] distances = new float[width * height];
-
-        float scale = 1.0f / maxDistance;
-
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                float dist = Mathf.Sqrt(grid[x, y].DistSq) * scale;
-                distances[y * width + x] = dist;
-            }
-        }
-
-        tex.SetPixelData(distances, 0);
-        tex.Apply();
-        return tex;
+        destination.Apply();
+        return destination;
     }
 }
