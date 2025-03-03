@@ -60,7 +60,7 @@ Shader "Custom/Cloud/Cloud2d" {
                     return o;
                 }
 
-                //常见算法
+                //常见算法, 提高低分率贴图边缘
                 float clampAndPowValue(float val, float3 minMaxPow) {
                     float mValue;
                     mValue = saturate((val - minMaxPow.x) / (minMaxPow.y - minMaxPow.x)); //边缘数值约束在(Min,Max)范围归一化[0,1] (加快或减缓边缘渐变)
@@ -80,19 +80,17 @@ Shader "Custom/Cloud/Cloud2d" {
                 {
                     float4 col = blendTwoCloud(i.uv);
                     float4 mask = tex2D(_MaskTex, i.uv); //方案1
-                    //方案2
+                    //方案2, 增加边缘扰动效果
                    /* float gray = (col.r + col.g + col.b) / 3;
                     float2 disOffset = float2(gray - _NoiseOffsetMultValue.x, gray - _NoiseOffsetMultValue.y) * _NoiseOffsetMultValue.z * 0.01;
 
                     float4 mask = tex2D(_MaskTex, i.uv + disOffset);*/
-                    float r = 1 - mask.r;
-                    //float r = 1 - mask.r;
+                    float r = 1 - mask.r;                    
                     ////裁剪边缘精度、边缘渐变幅度控制
                     //r = clampAndPowValue(r, _MinMaxPowValue.xyz);                    
-                    r = smoothstep(0.3, 0.7, r);
+                    r = smoothstep(0.3, 0.7, r);  //透明度平滑
 
                     float a = col.a * r;
-                    //a = smoothstep(0.3, 0.7, a);
                     float3 finalColor = col.rgb * _CloudColor.rgb;
                     col = float4(finalColor, a);
                     return col;
