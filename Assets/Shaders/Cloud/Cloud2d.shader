@@ -1,9 +1,7 @@
 Shader "Custom/Cloud/Cloud2d" {
         Properties{
-
             _MainTex("Texture", 2D) = "white" {}
             _MaskTex("MaskTexture", 2D) = "white" {}
-            _NoiseTex("NoiseTex", 2D) = "white" {}
             _MinMaxPowValue("边缘渐变范围(x,y),精度系数(z)", vector) = (1,1,1,1)
             _NoiseOffsetMultValue("扰动边缘偏移(x,y),扰动幅度(z)", vector) = (0,0,1,1)
             _CloudSpeed("uv走向,xy是第一个，zw是第二个", Vector) = (1,1,1,1)
@@ -15,10 +13,6 @@ Shader "Custom/Cloud/Cloud2d" {
             Tags{ "Queue" = "Transparent" "DisableBatching" = "True" }
             Pass
             {
-                Tags
-                {
-                    "LightMode" = "ForwardBase"
-                }
                 ZWrite Off
                 Blend SrcAlpha OneMinusSrcAlpha
                 Cull Off
@@ -95,7 +89,7 @@ Shader "Custom/Cloud/Cloud2d" {
                     //float r = 1 - mask.r;
                     ////裁剪边缘精度、边缘渐变幅度控制
                     //r = clampAndPowValue(r, _MinMaxPowValue.xyz);                    
-                    r = smoothstep(0.2, 0.8, r);
+                    r = smoothstep(0.3, 0.7, r);
 
                     float a = col.a * r;
                     //a = smoothstep(0.3, 0.7, a);

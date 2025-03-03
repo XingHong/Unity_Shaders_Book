@@ -9,8 +9,9 @@ public class GenerateMask : MonoBehaviour
     public int maskWidth;
     public int maskHeight;
     public int blockSize;
-    //public Material blurMaterial;
-    private Texture2D maskTexture2D;
+
+    private Texture2D originalTexture2D;
+    private Texture2D targetTexture2D;
 
     private Material material;
 
@@ -25,20 +26,18 @@ public class GenerateMask : MonoBehaviour
     public float blurSpread = 0.6f;
 
     [Range(1, 8)]
-    public int downSample = 2;
-
-    [Range(0.0f, 4.0f)]
-    public float luminanceThreshold = 0.6f;
+    public int downSample = 2;    
 
     public Material bloomMaterial;
 
-    public RenderTexture showexture2D;
-
-    public Texture2D test2d;
+    public RenderTexture showexture2D;    
 
     // Start is called before the first frame update
     void Start()
     {
+        int width = maskWidth * blockSize;
+        int height = maskHeight * blockSize;
+
         blockColors = new Color32[blockSize * blockSize];
         for (int i = 0; i < blockSize; ++i)
         {
@@ -49,18 +48,24 @@ public class GenerateMask : MonoBehaviour
         }
         material = GetComponent<MeshRenderer>().sharedMaterial;
 
-        Texture2D tempMaskTexture2D = new Texture2D(maskWidth * blockSize, maskHeight * blockSize, TextureFormat.ARGB32, false);
-        for (int y = 0; y < maskHeight * blockSize; y++)
+        originalTexture2D = CreateTexture(width, height, new Color(0, 0, 0, 0));
+        targetTexture2D = CreateTexture(width, height, new Color(0, 0, 0, 0));
+        material.SetTexture("_MaskTex", targetTexture2D);
+    }
+
+    private Texture2D CreateTexture(int width, int height, Color color)
+    {
+        Texture2D res = new Texture2D(width, height, TextureFormat.ARGB32, false);
+        for (int y = 0; y < width; y++)
         {
-            for (int x = 0; x < maskWidth * blockSize; x++)
+            for (int x = 0; x < height; x++)
             {
-                tempMaskTexture2D.SetPixel(x, y, new Color(0, 0, 0, 0)); //默认黑色              
-                //tempMaskTexture2D.SetPixel(x, y, Color.red); //默认黑色
+                res.SetPixel(x, y, color); //默认黑色              
+
             }
         }
-        tempMaskTexture2D.Apply();
-        maskTexture2D = tempMaskTexture2D;
-        material.SetTexture("_MaskTex", maskTexture2D);
+        res.Apply();
+        return res;
     }
 
     // Update is called once per frame
@@ -78,38 +83,29 @@ public class GenerateMask : MonoBehaviour
                 int x = Mathf.FloorToInt(localPos.x);
                 int y = Mathf.FloorToInt(localPos.y);
                 Debug.Log("点击到物体:" + hit.collider.gameObject + ",uv:" + uv + ", 位置:" + localPos + $",(x,y):({x},{y})");
-                maskTexture2D.SetPixels32(x * blockSize, y * blockSize, blockSize, blockSize, blockColors);
-                maskTexture2D.Apply();
-                //maskTexture2D = ProcessBlur(maskTexture2D);
-                var targetTex = new Texture2D(maskWidth * blockSize, maskHeight * blockSize, TextureFormat.ARGB32, false);
-                maskTexture2D = UnityDistanceFieldGenerator.GenerateSDF(maskTexture2D, targetTex);
-                material.SetTexture("_MaskTex", maskTexture2D);
-                test2d = targetTex;
+                originalTexture2D.SetPixels32(x * blockSize, y * blockSize, blockSize, blockSize, blockColors);
+                originalTexture2D.Apply();
+                ProcessBlur(originalTexture2D, targetTexture2D);
             }
         }
     }
 
-    public Texture2D ProcessBlur(Texture2D sourceTexture)
+    public void ProcessBlur(Texture2D sourceTexture, Texture2D targetTexture2D)
     {
-        int width = maskWidth * blockSize / downSample;
-        int height = maskHeight * blockSize / downSample;
+        int width = sourceTexture.width / downSample;
+        int height = sourceTexture.height / downSample;
         // 创建临时RenderTexture
         RenderTexture bloomRT = RenderTexture.GetTemporary(
-            width,
-            height,
+            sourceTexture.width,
+            sourceTexture.height,
             0,
             RenderTextureFormat.ARGB32
         );
 
-
-        bloomMaterial.SetFloat("_LuminanceThreshold", luminanceThreshold);
-
-        RenderTexture buffer0 = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGB32);
-        //buffer0.filterMode = FilterMode.Bilinear;
+        RenderTexture buffer0 = RenderTexture.GetTemporary(width, height, 0, RenderTextureFormat.ARGB32);        
 
         Graphics.Blit(sourceTexture, buffer0, bloomMaterial, 0);
-
-
+        showexture2D = buffer0;
 
         for (int i = 0; i < iterations; i++)
         {
@@ -142,13 +138,11 @@ public class GenerateMask : MonoBehaviour
         RenderTexture.ReleaseTemporary(buffer0);
 
         RenderTexture.active = bloomRT;
-        sourceTexture.ReadPixels(new Rect(0, 0, bloomRT.width, bloomRT.height), 0, 0);       
-        sourceTexture.Apply();
+        targetTexture2D.ReadPixels(new Rect(0, 0, bloomRT.width, bloomRT.height), 0, 0);
+        targetTexture2D.Apply();
 
         // 释放资源
         RenderTexture.ReleaseTemporary(bloomRT);
         RenderTexture.active = null;
-        
-        return sourceTexture;
     }
 }
