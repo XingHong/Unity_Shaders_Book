@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class SSEDTGenerator
+public class UnityDistanceFieldGenerator
 {
     private class Pixel
     {
@@ -24,8 +24,6 @@ public class SSEDTGenerator
 
         Pixel[,] pixels = new Pixel[sourceWidth, sourceHeight];
         Pixel[,] targetPixels = new Pixel[targetWidth, targetHeight];
-        Debug.Log("sourceWidth" + sourceWidth);
-        Debug.Log("sourceHeight" + sourceHeight);
         int x, y;
         Color targetColor = Color.white;
         for (y = 0; y < sourceWidth; y++)
@@ -43,7 +41,7 @@ public class SSEDTGenerator
 
         int gapX = sourceWidth / targetWidth;
         int gapY = sourceHeight / targetHeight;
-        int MAX_SEARCH_DIST = 16;
+        int MAX_SEARCH_DIST = 16;   //不能太大，耗性能
         int minx, maxx, miny, maxy;
         float max_distance = -MAX_SEARCH_DIST;
         float min_distance = MAX_SEARCH_DIST;

@@ -71,7 +71,7 @@ public class GenerateSDFMask : MonoBehaviour
                 Debug.Log("点击到物体:" + hit.collider.gameObject + ",uv:" + uv + ", 位置:" + localPos + $",(x,y):({x},{y})");
                 maskTexture2D.SetPixels32(x * blockSize, y * blockSize, blockSize, blockSize, blockColors);
                 maskTexture2D.Apply();
-                sdfTexture2D = SSEDTGenerator.GenerateSDF(maskTexture2D, sdfTexture2D);
+                sdfTexture2D = UnityDistanceFieldGenerator.GenerateSDF(maskTexture2D, sdfTexture2D);
             }
         }
     }

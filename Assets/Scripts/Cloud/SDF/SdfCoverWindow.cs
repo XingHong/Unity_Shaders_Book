@@ -26,7 +26,7 @@ public class SdfCoverWindow : EditorWindow
         if (sourceTex != null && GUILayout.Button("Cover"))
         {
             targetTex = new Texture2D(64, 64, TextureFormat.ARGB32, false);
-            targetTex = SSEDTGenerator.GenerateSDF(sourceTex, targetTex);
+            targetTex = UnityDistanceFieldGenerator.GenerateSDF(sourceTex, targetTex);
         }
 
         if (sourceTex)
