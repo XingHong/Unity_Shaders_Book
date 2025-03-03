@@ -10,7 +10,7 @@ public class SdfCoverWindow : EditorWindow
     [MenuItem("MyTools/SdfCoverWindow")]
     public static void ShowWindow()
     {
-        // ÏÔÊ¾ÏÖÓĞ´°¿ÚÊµÀı£¬Èç¹ûÃ»ÓĞ£¬Ôò´´½¨Ò»¸öĞÂµÄ
+        // æ˜¾ç¤ºç°æœ‰çª—å£å®ä¾‹ï¼Œå¦‚æœæ²¡æœ‰ï¼Œåˆ™åˆ›å»ºä¸€ä¸ªæ–°çš„
         var window = EditorWindow.GetWindow(typeof(SdfCoverWindow));
         window.position = new Rect(0, 0, 400, 200);
     }
