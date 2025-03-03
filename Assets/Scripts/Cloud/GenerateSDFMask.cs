@@ -7,8 +7,11 @@ using UnityEngine;
 public class GenerateSDFMask : MonoBehaviour
 {
     //注意：要构造一个128*128的遮罩贴图，配合sdf算法，不然生成的sdf贴图有可能是黑色，下面是根据参数特意构造的贴图
+    [Tooltip("横向格子数")]
     public int maskWidth = 8;
+    [Tooltip("竖向格子数")]
     public int maskHeight = 8;
+    [Tooltip("格子像素大小")]
     public int blockSize = 16;
     
     private Texture2D maskTexture2D;
@@ -21,6 +24,8 @@ public class GenerateSDFMask : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        int totalWidth = maskWidth * blockSize;
+        int totalHeight = maskHeight * blockSize;
         blockColors = new Color32[blockSize * blockSize];
         for (int i = 0; i < blockSize; ++i)
         {
@@ -31,10 +36,10 @@ public class GenerateSDFMask : MonoBehaviour
         }
         material = GetComponent<MeshRenderer>().sharedMaterial;
 
-        var tempMaskTexture2D = CreateTexture(maskWidth * blockSize, maskHeight * blockSize, new Color(0, 0, 0, 0));
+        var tempMaskTexture2D = CreateTexture(totalWidth, totalHeight, new Color(0, 0, 0, 0));
         maskTexture2D = tempMaskTexture2D;
-
-        tempMaskTexture2D = CreateTexture(64, 64, new Color(0, 0, 0, 0));
+        //sdf贴图大小是原始遮罩的四份之一，这样关联，采样的时候也贴合正式噪声图
+        tempMaskTexture2D = CreateTexture(totalWidth / 2, totalHeight / 2, new Color(0, 0, 0, 0));
         sdfTexture2D = tempMaskTexture2D;
         material.SetTexture("_MaskTex", sdfTexture2D);
     }
