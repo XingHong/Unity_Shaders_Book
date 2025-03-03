@@ -144,9 +144,17 @@ public class SSEDTGenerator
         {
             for (y = 0; y < targetHeight; y++)
             {
+                bool isIn = targetPixels[x, y].distance > 0;
                 targetPixels[x, y].distance -= min_distance;
                 float value = targetPixels[x, y].distance / clampDist;
-                destination.SetPixel(x, y, new Color(value, value, value, value));
+                if (isIn)
+                {
+                    destination.SetPixel(x, y, new Color(value, 1, 1, 1));
+                }
+                else
+                {
+                    destination.SetPixel(x, y, new Color(value, value, 0, 0));
+                }
 
             }
         }
